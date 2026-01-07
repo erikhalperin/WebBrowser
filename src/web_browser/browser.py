@@ -2,6 +2,7 @@ import copy
 import socket
 import ssl
 import tkinter
+import tkinter.font
 
 from lru_dict import LRUDict
 from url import URL
@@ -19,6 +20,8 @@ class Browser:
         self.window = tkinter.Tk()
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
+        self.window.bind("<MouseWheel>", self.scrollwheel)
+        self.font1 = tkinter.font.Font(family="Times", size=16)
         self.canvas = tkinter.Canvas(self.window, width=WIDTH, height=HEIGHT)
         self.canvas.pack()
 
@@ -80,7 +83,7 @@ class Browser:
     def load(self, url: URL):
         body = self.request(url, 0)
         text = lex(body)
-        self.display_list = layout(text)
+        self.display_list = layout(text, self.font1)
         self.draw()
 
     def draw(self):
@@ -88,7 +91,7 @@ class Browser:
         for x, y, c in self.display_list:
             if y > self.scroll + HEIGHT: continue
             if y + VSTEP < self.scroll: continue
-            self.canvas.create_text(x, y - self.scroll, text=c)
+            self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=self.font1)
 
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
@@ -98,16 +101,25 @@ class Browser:
         self.scroll -= SCROLL_STEP
         self.draw()
 
-def layout(text):
+    def scrollwheel(self, e):
+        if e.delta < 0:
+            self.scroll += SCROLL_STEP
+        else:
+            self.scroll -= SCROLL_STEP
+        self.draw()
+
+def layout(text, font):
     display_list = []
     cursor_x, cursor_y = HSTEP, VSTEP
-    for c in text:
-        display_list.append((cursor_x, cursor_y, c))
-        cursor_x += HSTEP
-        # reset to next line
-        if cursor_x >= WIDTH - HSTEP:
-            cursor_y += VSTEP
+
+    for word in text.split():
+        w = font.measure(word)
+        if cursor_x + w > WIDTH - HSTEP:
+            cursor_y += font.metrics("linespace") * 1.25
             cursor_x = HSTEP
+        display_list.append((cursor_x, cursor_y, word))
+        cursor_x += w + font.measure(" ")
+
     return display_list
 
 
