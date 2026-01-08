@@ -3,6 +3,7 @@ import socket
 import ssl
 import tkinter
 import tkinter.font
+from typing import Any, Literal
 
 from lru_dict import LRUDict
 from url import URL
@@ -82,16 +83,16 @@ class Browser:
 
     def load(self, url: URL):
         body = self.request(url, 0)
-        text = lex(body)
-        self.display_list = layout(text, self.font1)
+        tokens: list[Text|Tag] = lex(body)
+        self.display_list = Layout(tokens).display_list
         self.draw()
 
     def draw(self):
         self.canvas.delete("all")
-        for x, y, c in self.display_list:
+        for x, y, c, f in self.display_list:
             if y > self.scroll + HEIGHT: continue
             if y + VSTEP < self.scroll: continue
-            self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=self.font1)
+            self.canvas.create_text(x, y - self.scroll, text=c, anchor='nw', font=f)
 
     def scrolldown(self, e):
         self.scroll += SCROLL_STEP
@@ -108,17 +109,34 @@ class Browser:
             self.scroll -= SCROLL_STEP
         self.draw()
 
-def layout(text, font):
+def layout(tokens: list[Text|Tag]) -> list[tuple[int, int, str]]:
     display_list = []
     cursor_x, cursor_y = HSTEP, VSTEP
+    weight = "normal"
+    style = "roman"
 
-    for word in text.split():
-        w = font.measure(word)
-        if cursor_x + w > WIDTH - HSTEP:
-            cursor_y += font.metrics("linespace") * 1.25
-            cursor_x = HSTEP
-        display_list.append((cursor_x, cursor_y, word))
-        cursor_x += w + font.measure(" ")
+    for tok in tokens:
+        if isinstance(tok, Text):
+            for word in tok.text.split():
+                font = tkinter.font.Font(
+                    size=16,
+                    weight=weight,
+                    slant=style,
+                )
+                w = font.measure(word)
+                if cursor_x + w > WIDTH - HSTEP:
+                    cursor_y += font.metrics("linespace") * 1.25
+                    cursor_x = HSTEP
+                display_list.append((cursor_x, cursor_y, word, font))
+                cursor_x += w + font.measure(" ")
+        elif tok.tag == "i":
+            style = "italic"
+        elif tok.tag == "/i":
+            style = "roman"
+        elif tok.tag == "b":
+            weight = "bold"
+        elif tok.tag == "/b":
+            weight = "normal"
 
     return display_list
 
@@ -132,17 +150,81 @@ def send_request(s: socket, path: str, host: str):
     s.send(req.encode("utf8"))
 
 
-def lex(body: str) -> str:
+def lex(body: str) -> list[Text|Tag]:
+    out = []
+    buffer = ""
     in_tag = False
-    text = ""
     for c in body:
         if c == "<":
             in_tag = True
+            if buffer: out.append(Text(buffer))
+            buffer = ""
         elif c == ">":
             in_tag = False
-        elif not in_tag:
-            text += c
-    return text
+            out.append(Tag(buffer))
+            buffer = ""
+        else:
+            buffer += c
+    if not in_tag and buffer:
+        out.append(Text(buffer))
+    return out
+
+
+class Text:
+    def __init__(self, text):
+        self.text = text
+
+
+class Tag:
+    def __init__(self, tag):
+        self.tag = tag
+
+
+class Layout:
+    def __init__(self, tokens: list[Text|Tag]):
+        self.display_list = []
+        self.cursor_x = HSTEP
+        self.cursor_y = VSTEP
+        self.weight = "normal"
+        self.style = "roman"
+        self.size = 12
+        for tok in tokens:
+            self.token(tok)
+
+    def token(self, tok):
+        if isinstance(tok, Text):
+            for w in tok.text.split():
+                self.word(w)
+
+        elif tok.tag == "i":
+            self.style = "italic"
+        elif tok.tag == "/i":
+            self.style = "roman"
+        elif tok.tag == "b":
+            self.weight = "bold"
+        elif tok.tag == "/b":
+            self.weight = "normal"
+        elif tok.tag == "small":
+            self.size -= 2
+        elif tok.tag == "/small":
+            self.size += 2
+        elif tok.tag == "big":
+            self.size += 4
+        elif tok.tag == "/big":
+            self.size -= 4
+
+    def word(self, word: str):
+        font = tkinter.font.Font(
+            size=self.size,
+            weight=self.weight,
+            slant=self.style,
+        )
+        w = font.measure(word)
+        if self.cursor_x + w > WIDTH - HSTEP:
+            self.cursor_y += font.metrics("linespace") * 1.25
+            self.cursor_x = HSTEP
+        self.display_list.append((self.cursor_x, self.cursor_y, word, font))
+        self.cursor_x += w + font.measure(" ")
 
 
 if __name__ == "__main__":
