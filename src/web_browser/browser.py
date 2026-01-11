@@ -120,6 +120,7 @@ def send_request(s: socket, path: str, host: str):
 if __name__ == "__main__":
     b = Browser()
 
-    #b.load(URL("https://browser.engineering/examples/xiyouji.html"))
-    b.load(URL("https://browser.engineering/graphics.html"))
+    # b.load(URL("https://browser.engineering/examples/xiyouji.html"))
+    b.load(URL("https://browser.engineering/text.html"))
+    # b.load(URL("https://browser.engineering/examples/example3-sizes.html"))
     tkinter.mainloop()
