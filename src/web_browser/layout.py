@@ -1,22 +1,13 @@
 import tkinter
 
+from web_browser.html_parser import Text, Element
 
 HSTEP, VSTEP = 13, 18
 FONTS = {}
 
 
-class Text:
-    def __init__(self, text):
-        self.text = text
-
-
-class Tag:
-    def __init__(self, tag):
-        self.tag = tag
-
-
 class Layout:
-    def __init__(self, tokens: list[Text|Tag], width: int):
+    def __init__(self, tokens: list[Text | Element], width: int):
         self.display_list = []
         self.cursor_x = HSTEP
         self.cursor_y = VSTEP
@@ -79,26 +70,6 @@ class Layout:
 
         self.cursor_x = HSTEP
         self.line = []
-
-
-def lex(body: str) -> list[Text|Tag]:
-    out = []
-    buffer = ""
-    in_tag = False
-    for c in body:
-        if c == "<":
-            in_tag = True
-            if buffer: out.append(Text(buffer))
-            buffer = ""
-        elif c == ">":
-            in_tag = False
-            out.append(Tag(buffer))
-            buffer = ""
-        else:
-            buffer += c
-    if not in_tag and buffer:
-        out.append(Text(buffer))
-    return out
 
 
 def get_font(size: int, weight: str, style: str):

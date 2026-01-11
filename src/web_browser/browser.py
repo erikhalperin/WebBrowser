@@ -5,7 +5,8 @@ import tkinter
 import tkinter.font
 from lru_dict import LRUDict
 from url import URL
-from web_browser.layout import Text, Layout, Tag, lex, VSTEP
+from web_browser.html_parser import HTMLParser, print_tree
+from web_browser.layout import Text, Layout, Element, VSTEP
 
 WIDTH, HEIGHT = 800, 600
 SCROLL_STEP = 100
@@ -81,9 +82,11 @@ class Browser:
 
     def load(self, url: URL):
         body = self.request(url, 0)
-        tokens: list[Text|Tag] = lex(body)
-        self.display_list = Layout(tokens, WIDTH).display_list
-        self.draw()
+        parser = HTMLParser(body)
+        print_tree(parser.parse())
+        # tokens: list[Text | Element] = parser.parse() # here
+        # self.display_list = Layout(tokens, WIDTH).display_list
+        # self.draw()
 
     def draw(self):
         self.canvas.delete("all")
@@ -121,6 +124,6 @@ if __name__ == "__main__":
     b = Browser()
 
     # b.load(URL("https://browser.engineering/examples/xiyouji.html"))
-    b.load(URL("https://browser.engineering/text.html"))
+    b.load(URL("https://browser.engineering/html.html"))
     # b.load(URL("https://browser.engineering/examples/example3-sizes.html"))
-    tkinter.mainloop()
+    #tkinter.mainloop()
