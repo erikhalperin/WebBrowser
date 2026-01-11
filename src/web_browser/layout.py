@@ -2,6 +2,7 @@ import tkinter
 
 
 HSTEP, VSTEP = 13, 18
+FONTS = {}
 
 
 class Text:
@@ -56,11 +57,7 @@ class Layout:
             self.cursor_y += VSTEP
 
     def word(self, word: str):
-        font = tkinter.font.Font(
-            size=self.size,
-            weight=self.weight,
-            slant=self.style,
-        )
+        font = get_font(self.size, self.weight, self.style)
         w = font.measure(word)
         if self.cursor_x + w > self.browser_width - HSTEP:
             self.flush()
@@ -104,33 +101,11 @@ def lex(body: str) -> list[Text|Tag]:
     return out
 
 
-def layout(tokens: list[Text|Tag], browser_width: int) -> list[tuple[int, int, str]]:
-    display_list = []
-    cursor_x, cursor_y = HSTEP, VSTEP
-    weight = "normal"
-    style = "roman"
-
-    for tok in tokens:
-        if isinstance(tok, Text):
-            for word in tok.text.split():
-                font = tkinter.font.Font(
-                    size=16,
-                    weight=weight,
-                    slant=style,
-                )
-                w = font.measure(word)
-                if cursor_x + w > browser_width - HSTEP:
-                    cursor_y += font.metrics("linespace") * 1.25
-                    cursor_x = HSTEP
-                display_list.append((cursor_x, cursor_y, word, font))
-                cursor_x += w + font.measure(" ")
-        elif tok.tag == "i":
-            style = "italic"
-        elif tok.tag == "/i":
-            style = "roman"
-        elif tok.tag == "b":
-            weight = "bold"
-        elif tok.tag == "/b":
-            weight = "normal"
-
-    return display_list
+def get_font(size: int, weight: str, style: str):
+    key = (size, weight, style)
+    if key not in FONTS:
+        font = tkinter.font.Font(size=size, weight=weight,
+            slant=style)
+        label = tkinter.Label(font=font)
+        FONTS[key] = (font, label)
+    return FONTS[key][0]
