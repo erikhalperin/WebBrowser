@@ -15,6 +15,7 @@ SCROLL_STEP = 100
 class Browser:
     def __init__(self):
         self.display_list = []
+        self.nodes = None
         self.socket_dict = LRUDict()
         self.scroll = 0
         self.window = tkinter.Tk()
@@ -82,11 +83,10 @@ class Browser:
 
     def load(self, url: URL):
         body = self.request(url, 0)
-        parser = HTMLParser(body)
-        print_tree(parser.parse())
-        # tokens: list[Text | Element] = parser.parse() # here
-        # self.display_list = Layout(tokens, WIDTH).display_list
-        # self.draw()
+        self.nodes = HTMLParser(body).parse()
+        # print_tree(self.nodes)
+        self.display_list = Layout(self.nodes, WIDTH).display_list
+        self.draw()
 
     def draw(self):
         self.canvas.delete("all")
@@ -123,7 +123,7 @@ def send_request(s: socket, path: str, host: str):
 if __name__ == "__main__":
     b = Browser()
 
-    # b.load(URL("https://browser.engineering/examples/xiyouji.html"))
-    b.load(URL("https://browser.engineering/html.html"))
+    # b.load(URL("https://browser.engineering/html.html"))
+    b.load(URL("https://browser.engineering/"))
     # b.load(URL("https://browser.engineering/examples/example3-sizes.html"))
-    #tkinter.mainloop()
+    tkinter.mainloop()
